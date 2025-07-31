@@ -1,21 +1,18 @@
-export interface Province {
-  type: string;
-  features: Feature[];
+import type { GeoJsonObject } from "geojson";
+
+export interface ProvinceProperties {
+  id: number;
+  name: string;
+  // eslint-disable-next-line
+  [key: string]: any;
 }
 
-export interface Feature {
-  type: string;
-  geometry: Geometry;
-  properties: Properties;
-  id: string;
+export interface ProvinceGeoJSON extends GeoJsonObject {
+  type: "FeatureCollection";
+  features: ProvinceFeature[];
 }
 
-export interface Geometry {
-  type: string;
-  coordinates: any[][][];
-}
-
-export interface Properties {
-  KODE_PROV: string;
-  PROVINSI: string;
+export interface ProvinceFeature extends GeoJSON.Feature {
+  properties: ProvinceProperties;
+  geometry: GeoJSON.Geometry;
 }

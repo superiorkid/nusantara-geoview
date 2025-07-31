@@ -1,23 +1,8 @@
-import type { GeoJsonObject } from "geojson";
 import "leaflet/dist/leaflet.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
-
-interface ProvinceProperties {
-  id: number;
-  name: string;
-  [key: string]: unknown;
-}
-
-interface ProvinceGeoJSON extends GeoJsonObject {
-  type: "FeatureCollection";
-  features: ProvinceFeature[];
-}
-
-interface ProvinceFeature extends GeoJSON.Feature {
-  properties: ProvinceProperties;
-  geometry: GeoJSON.Geometry;
-}
+import type { ProvinceFeature, ProvinceGeoJSON } from "../types/province";
+import L from "leaflet";
 
 // const defaultIcon = L.icon({
 //   iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
@@ -38,7 +23,30 @@ const MapIndonesia = () => {
     -2.5489, 118.0149,
   ]);
   const [mapZoom, setMapZoom] = useState<number>(5);
+  const [selectedProvince, setSelectedProvince] =
+    useState<ProvinceFeature | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+
+  const zoomToProvince = useCallback((feature: ProvinceFeature) => {
+    if (!mapRef.current) return;
+
+    const map = mapRef.current;
+    const bounds = L.geoJSON(feature).getBounds();
+
+    // Calculate the offset - we'll reserve 25% of the map width for sidebar
+    const mapWidth = map.getSize().x;
+    const offsetPercentage = 0.25;
+    const offsetPixels = mapWidth * offsetPercentage;
+
+    // Fly to the bounds with left padding
+    map.flyToBounds(bounds, {
+      paddingTopLeft: [offsetPixels, 0], // Leave space on the left
+      paddingBottomRight: [0, 0], // No padding on right
+      duration: 1,
+    });
+
+    setSelectedProvince(feature);
+  }, []);
 
   const getRandomColor = useCallback(() => {
     const letters = "0123456789ABCDEF";
@@ -53,15 +61,19 @@ const MapIndonesia = () => {
     (feature?: ProvinceFeature): L.PathOptions => {
       if (!feature) return {};
 
+      const isSelected =
+        selectedProvince?.properties?.PROVINSI === feature.properties.PROVINSI;
+      const isOther = selectedProvince && !isSelected;
+
       return {
-        fillColor: getRandomColor(),
-        weight: 1,
+        fillColor: isSelected ? "#3388ff" : getRandomColor(),
+        weight: isSelected ? 3 : 1,
         opacity: 1,
         color: "#fff",
-        fillOpacity: 0.8,
+        fillOpacity: isOther ? 0.3 : 0.8,
       };
     },
-    [getRandomColor]
+    [getRandomColor, selectedProvince]
   );
 
   const onEachProvince = useCallback(
@@ -89,10 +101,13 @@ const MapIndonesia = () => {
           mouseout: () => {
             pathLayer.setStyle({ ...defaultStyle, fillColor: originalColor });
           },
+          click: () => {
+            zoomToProvince(feature);
+          },
         });
       }
     },
-    [provinceStyle]
+    [provinceStyle, zoomToProvince]
   );
 
   useEffect(() => {
@@ -104,8 +119,29 @@ const MapIndonesia = () => {
       );
   }, []);
 
+  const handleReset = () => {
+    setSelectedProvince(null);
+    if (mapRef.current) {
+      mapRef.current.flyTo(mapCenter, mapZoom);
+    }
+  };
+
   return (
-    <div className="">
+    <div className="relative">
+      {selectedProvince && (
+        <div className="absolute left-4 top-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64">
+          <h2 className="text-xl font-bold mb-2">
+            {selectedProvince.properties.PROVINSI}
+          </h2>
+          <button
+            onClick={handleReset}
+            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Reset View
+          </button>
+        </div>
+      )}
+
       <MapContainer
         center={mapCenter}
         zoom={mapZoom}
