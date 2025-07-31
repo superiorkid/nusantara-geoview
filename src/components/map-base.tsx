@@ -1,8 +1,9 @@
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
 import type { ProvinceFeature, ProvinceGeoJSON } from "../types/province";
-import L from "leaflet";
+import type { RegencyGeoJSON } from "../types/regency";
 
 // const defaultIcon = L.icon({
 //   iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
@@ -16,19 +17,27 @@ import L from "leaflet";
 // });
 
 const MapIndonesia = () => {
+  const selectedProvinceRef = useRef<ProvinceFeature | null>(null);
   const [provinceData, setProvinceData] = useState<ProvinceGeoJSON | null>(
     null
   );
+
+  const [regencyData, setRegencyData] = useState<RegencyGeoJSON | null>(null);
+
   const [mapCenter, setMapCenter] = useState<[number, number]>([
     -2.5489, 118.0149,
   ]);
   const [mapZoom, setMapZoom] = useState<number>(5);
   const [selectedProvince, setSelectedProvince] =
     useState<ProvinceFeature | null>(null);
+
   const mapRef = useRef<L.Map | null>(null);
 
   const zoomToProvince = useCallback((feature: ProvinceFeature) => {
     if (!mapRef.current) return;
+
+    setSelectedProvince(feature);
+    selectedProvinceRef.current = feature;
 
     const map = mapRef.current;
     const bounds = L.geoJSON(feature).getBounds();
@@ -48,67 +57,71 @@ const MapIndonesia = () => {
     setSelectedProvince(feature);
   }, []);
 
-  const getRandomColor = useCallback(() => {
-    const letters = "0123456789ABCDEF";
-    let color = "#";
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  }, []);
-
   const provinceStyle = useCallback(
     (feature?: ProvinceFeature): L.PathOptions => {
       if (!feature) return {};
 
       const isSelected =
         selectedProvince?.properties?.PROVINSI === feature.properties.PROVINSI;
-      const isOther = selectedProvince && !isSelected;
 
       return {
-        fillColor: isSelected ? "#3388ff" : getRandomColor(),
-        weight: isSelected ? 3 : 1,
-        opacity: 1,
-        color: "#fff",
-        fillOpacity: isOther ? 0.3 : 0.8,
+        fillColor: isSelected ? "#3b82f6" : "#f1f5f9",
+        weight: isSelected ? 2 : 1,
+        color: isSelected ? "#fff" : "#e2e8f0",
+        fillOpacity: isSelected ? 0.8 : 0.6,
+        opacity: isSelected ? 1 : 0.7,
       };
     },
-    [getRandomColor, selectedProvince]
+    [selectedProvince]
   );
 
   const onEachProvince = useCallback(
     (feature: ProvinceFeature, layer: L.Layer) => {
       if ("setStyle" in layer) {
         const pathLayer = layer as L.Path;
-        const defaultStyle = provinceStyle(feature);
+        // const defaultStyle = provinceStyle(feature);
 
-        const originalColor = defaultStyle.fillColor;
+        // const originalColor = defaultStyle.fillColor;
         if (feature.properties?.PROVINSI) {
           pathLayer.bindPopup(`<b>${feature.properties.PROVINSI}</b>`);
         }
 
         pathLayer.on({
-          mouseover: () => {
-            pathLayer.setStyle({
-              weight: 3,
-              color: "#fff",
-              dashArray: "",
-              fillOpacity: 0.9,
-              fillColor: originalColor,
-            });
-            pathLayer.bringToFront();
-          },
-          mouseout: () => {
-            pathLayer.setStyle({ ...defaultStyle, fillColor: originalColor });
-          },
+          // mouseover: () => {
+          //   pathLayer.setStyle({
+          //     weight: 2,
+          //     color: "#fff",
+          //     dashArray: "",
+          //     fillOpacity: 0.9,
+          //     fillColor: originalColor,
+          //   });
+          //   pathLayer.bringToFront();
+          // },
+          // mouseout: () => {
+          //   pathLayer.setStyle({ ...defaultStyle, fillColor: originalColor });
+          // },
           click: () => {
+            if (selectedProvinceRef.current) return;
             zoomToProvince(feature);
           },
         });
       }
     },
-    [provinceStyle, zoomToProvince]
+    [zoomToProvince]
   );
+
+  const filteredRegencies = useMemo(() => {
+    if (!selectedProvince || !regencyData) return null;
+
+    const provinceName = selectedProvince.properties.PROVINSI;
+
+    return {
+      ...regencyData,
+      features: regencyData.features.filter(
+        (feature) => feature.properties.WADMPR === provinceName
+      ),
+    };
+  }, [selectedProvince, regencyData]);
 
   useEffect(() => {
     fetch("/data/province.json")
@@ -119,8 +132,16 @@ const MapIndonesia = () => {
       );
   }, []);
 
+  useEffect(() => {
+    fetch("/data/regency.json")
+      .then((res) => res.json())
+      .then((data: RegencyGeoJSON) => setRegencyData(data))
+      .catch((err) => console.error("Failed to load regency data", err));
+  }, []);
+
   const handleReset = () => {
     setSelectedProvince(null);
+    selectedProvinceRef.current = null;
     if (mapRef.current) {
       mapRef.current.flyTo(mapCenter, mapZoom);
     }
@@ -147,9 +168,9 @@ const MapIndonesia = () => {
         zoom={mapZoom}
         scrollWheelZoom={false}
         className="h-[100dvh] w-[100vw]"
-        dragging={true}
-        zoomControl={true}
-        doubleClickZoom={true}
+        dragging={false}
+        zoomControl={false}
+        doubleClickZoom={false}
         touchZoom={false}
         ref={mapRef}
       >
@@ -163,6 +184,23 @@ const MapIndonesia = () => {
             data={provinceData}
             style={provinceStyle}
             onEachFeature={onEachProvince}
+          />
+        )}
+
+        {filteredRegencies && (
+          <GeoJSON
+            data={filteredRegencies}
+            style={{
+              color: "#38bdf8", // border color: sky-400
+              weight: 1,
+              fillColor: "#bae6fd", // fill: sky-200
+              fillOpacity: 0.6,
+            }}
+            onEachFeature={(feature, layer) => {
+              if (feature.properties?.WADMKK) {
+                layer.bindPopup(`<b>${feature.properties.WADMKK}</b>`);
+              }
+            }}
           />
         )}
       </MapContainer>

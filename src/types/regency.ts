@@ -1,20 +1,16 @@
-export interface Regency {
-  type: string;
-  features: Feature[];
+import type { GeoJsonObject } from "geojson";
+
+export interface RegencyGeoJSON extends GeoJsonObject {
+  type: "FeatureCollection";
+  features: RegencyFeature[];
 }
 
-export interface Feature {
-  type: string;
-  geometry?: Geometry;
-  properties: Properties;
+export interface RegencyFeature extends GeoJSON.Feature {
+  geometry: GeoJSON.Geometry;
+  properties: RegencyProperties;
 }
 
-export interface Geometry {
-  type: string;
-  coordinates: any[][][];
-}
-
-export interface Properties {
+export interface RegencyProperties {
   OBJECTID: number;
   NAMOBJ: string;
   FCODE: string;
