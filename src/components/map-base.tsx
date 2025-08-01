@@ -1,15 +1,25 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Loader2Icon } from "lucide-react";
+import { Loader2Icon, MapPinIcon, SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
+import { useDebounce } from "../hooks/use-debounce";
 import type { ProvinceFeature, ProvinceGeoJSON } from "../types/province";
-import type { RegencyGeoJSON } from "../types/regency";
+import type { RegencyFeature, RegencyGeoJSON } from "../types/regency";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
+import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 
 const MapIndonesia = () => {
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
+  const debouncedKeyword = useDebounce(searchKeyword, 300);
+  const [searchResults, setSearchResults] = useState<RegencyFeature[]>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+
+  const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const selectedProvinceRef = useRef<ProvinceFeature | null>(null);
   const [provinceData, setProvinceData] = useState<ProvinceGeoJSON | null>(
@@ -18,6 +28,8 @@ const MapIndonesia = () => {
   const [regencyData, setRegencyData] = useState<RegencyGeoJSON | null>(null);
   const [selectedRegency, setSelectedRegency] =
     useState<GeoJSON.Feature | null>(null);
+  const selectedRegencyRef = useRef<GeoJSON.Feature | null>(null);
+
   const [selectedProvince, setSelectedProvince] =
     useState<ProvinceFeature | null>(null);
   const [provinceColors, setProvinceColors] = useState<Record<string, string>>(
@@ -29,6 +41,17 @@ const MapIndonesia = () => {
   const [mapCenter] = useState<[number, number]>([-2.5489, 118.0149]);
   const [mapZoom] = useState<number>(5);
   const mapRef = useRef<L.Map | null>(null);
+
+  const handleInputBlur = (e: React.FocusEvent) => {
+    // Check if the blur is happening because we're clicking on a result
+    const isClickingResult = resultsRef.current?.contains(
+      e.relatedTarget as Node
+    );
+
+    if (!isClickingResult) {
+      setIsInputFocused(false);
+    }
+  };
 
   const zoomToProvince = useCallback(
     (feature: ProvinceFeature) => {
@@ -131,6 +154,51 @@ const MapIndonesia = () => {
   }, [provinceData, selectedProvince]);
 
   useEffect(() => {
+    const handleSearch = () => {
+      if (!debouncedKeyword.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+
+      try {
+        const results =
+          regencyData?.features.filter((regency) =>
+            regency.properties.WADMKK?.toLowerCase().includes(
+              debouncedKeyword.toLowerCase()
+            )
+          ) || [];
+
+        setSearchResults(results);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    handleSearch();
+  }, [debouncedKeyword, regencyData]);
+
+  const zoomToRegency = useCallback((feature: GeoJSON.Feature) => {
+    if (!mapRef.current) return;
+
+    const map = mapRef.current;
+    const bounds = L.geoJSON(feature).getBounds();
+
+    const mapWidth = map.getSize().x;
+    const offsetPixels = mapWidth * 0.3;
+
+    map.flyToBounds(bounds, {
+      paddingTopLeft: [offsetPixels, 50],
+      paddingBottomRight: [50, 50],
+      duration: 1,
+    });
+  }, []);
+
+  useEffect(() => {
     setIsLoading(true);
     fetch("/data/province.json")
       .then((res) => res.json())
@@ -160,6 +228,7 @@ const MapIndonesia = () => {
     setSelectedProvince(null);
     setSelectedRegency(null);
     selectedProvinceRef.current = null;
+    selectedRegencyRef.current = null;
     if (mapRef.current) {
       mapRef.current.flyTo(mapCenter, mapZoom);
     }
@@ -306,7 +375,13 @@ const MapIndonesia = () => {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => setSelectedRegency(null)}
+                      onClick={() => {
+                        setSelectedRegency(null);
+                        selectedRegencyRef.current = null;
+                        if (selectedProvince) {
+                          zoomToProvince(selectedProvince);
+                        }
+                      }}
                       className="w-full mt-4"
                     >
                       Close Regency
@@ -318,6 +393,90 @@ const MapIndonesia = () => {
           </Card>
         </div>
       )}
+
+      <div className="z-[1000] absolute top-5 right-5 bg-background">
+        <div className="relative">
+          <Input
+            className="peer ps-9"
+            placeholder="Search regencies..."
+            type="search"
+            onChange={(event) => setSearchKeyword(event.target.value)}
+            value={searchKeyword}
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={handleInputBlur}
+          />
+          <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+            <SearchIcon size={16} />
+          </div>
+        </div>
+
+        {isInputFocused && searchKeyword && searchResults.length > 0 && (
+          <div
+            ref={resultsRef}
+            className="absolute right-0 w-[341px] max-w-[calc(100vw-2.5rem)] bg-background mt-1 border rounded-md shadow-lg max-h-[400px] overflow-y-auto"
+          >
+            {searchResults.map((regency, index) => (
+              <div
+                key={index}
+                className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors duration-150"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  if (!selectedRegencyRef.current) {
+                    setSearchKeyword(regency.properties.WADMKK || "");
+                    setSearchResults([]);
+                    setSelectedRegency(regency);
+                    selectedRegencyRef.current = regency;
+                    zoomToRegency(regency);
+                    setIsInputFocused(false);
+
+                    if (
+                      !selectedProvince ||
+                      selectedProvince.properties.PROVINSI !==
+                        regency.properties.WADMPR
+                    ) {
+                      const parentProvince = provinceData?.features.find(
+                        (p) =>
+                          p.properties.PROVINSI === regency.properties.WADMPR
+                      );
+                      if (parentProvince) {
+                        setSelectedProvince(parentProvince);
+                        selectedProvinceRef.current = parentProvince;
+                      }
+                    }
+                  }
+                }}
+              >
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-900">
+                    {regency.properties.WADMKK}
+                  </span>
+                  <span className="text-sm text-gray-500 mt-1">
+                    <span className="inline-flex items-center">
+                      <MapPinIcon className="h-3 w-3 mr-1" />
+                      {regency.properties.WADMPR}
+                    </span>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isInputFocused &&
+          searchKeyword &&
+          searchResults.length === 0 &&
+          !isSearching && (
+            <div className="absolute right-0 w-[500px] max-w-[calc(100vw-2.5rem)] bg-background mt-1 border rounded-md shadow-lg p-3 text-muted-foreground">
+              No results found
+            </div>
+          )}
+
+        {isInputFocused && isSearching && (
+          <div className="absolute right-0 w-[500px] max-w-[calc(100vw-2.5rem)] bg-background mt-1 border rounded-md shadow-lg p-3 text-muted-foreground">
+            Searching...
+          </div>
+        )}
+      </div>
 
       <MapContainer
         center={mapCenter}
@@ -365,7 +524,11 @@ const MapIndonesia = () => {
                 layer.bindPopup(`<b>${feature.properties.WADMKK}</b>`);
                 layer.on({
                   click: () => {
-                    setSelectedRegency(feature);
+                    if (!selectedRegencyRef.current) {
+                      setSelectedRegency(feature);
+                      selectedRegencyRef.current = feature;
+                      zoomToRegency(feature);
+                    }
                   },
                 });
               }
