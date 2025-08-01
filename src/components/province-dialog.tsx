@@ -3,6 +3,7 @@
 import { MapContainer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import type { LatLngExpression } from "leaflet";
 
 interface ProvinceDialogProps {
   open: boolean;
@@ -31,7 +32,7 @@ export function ProvinceDialog({
 
         {provinceFeature && (
           <MapContainer
-            center={center}
+            center={center as LatLngExpression}
             zoom={7}
             style={{ height: "300px", width: "100%", borderRadius: "0.5rem" }}
             scrollWheelZoom={false}
