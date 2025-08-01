@@ -21,7 +21,6 @@ const MapIndonesia = () => {
   const [provinceData, setProvinceData] = useState<ProvinceGeoJSON | null>(
     null
   );
-
   const [regencyData, setRegencyData] = useState<RegencyGeoJSON | null>(null);
 
   const [mapCenter, setMapCenter] = useState<[number, number]>([
@@ -30,6 +29,10 @@ const MapIndonesia = () => {
   const [mapZoom, setMapZoom] = useState<number>(5);
   const [selectedProvince, setSelectedProvince] =
     useState<ProvinceFeature | null>(null);
+
+  const [provinceColors, setProvinceColors] = useState<Record<string, string>>(
+    {}
+  );
 
   const mapRef = useRef<L.Map | null>(null);
 
@@ -42,64 +45,48 @@ const MapIndonesia = () => {
     const map = mapRef.current;
     const bounds = L.geoJSON(feature).getBounds();
 
-    // Calculate the offset - we'll reserve 25% of the map width for sidebar
     const mapWidth = map.getSize().x;
     const offsetPercentage = 0.25;
     const offsetPixels = mapWidth * offsetPercentage;
 
-    // Fly to the bounds with left padding
     map.flyToBounds(bounds, {
-      paddingTopLeft: [offsetPixels, 0], // Leave space on the left
-      paddingBottomRight: [0, 0], // No padding on right
+      paddingTopLeft: [offsetPixels, 0],
+      paddingBottomRight: [0, 0],
       duration: 1,
     });
-
-    setSelectedProvince(feature);
   }, []);
 
   const provinceStyle = useCallback(
     (feature?: ProvinceFeature): L.PathOptions => {
       if (!feature) return {};
 
+      const provinceName = feature.properties.PROVINSI;
       const isSelected =
-        selectedProvince?.properties?.PROVINSI === feature.properties.PROVINSI;
+        selectedProvince?.properties?.PROVINSI === provinceName;
 
       return {
-        fillColor: isSelected ? "#3b82f6" : "#f1f5f9",
-        weight: isSelected ? 2 : 1,
-        color: isSelected ? "#fff" : "#e2e8f0",
-        fillOpacity: isSelected ? 0.8 : 0.6,
-        opacity: isSelected ? 1 : 0.7,
+        fillColor: isSelected
+          ? "#60a5fa"
+          : provinceColors[provinceName] || "#f1f5f9", // blue-400 or random pastel
+        color: isSelected ? "#ffffff" : "#e2e8f0", // white stroke for selected
+        weight: isSelected ? 3 : 1, // bolder stroke
+        fillOpacity: isSelected ? 0.9 : 0.6,
+        opacity: 1,
       };
     },
-    [selectedProvince]
+    [selectedProvince, provinceColors]
   );
 
   const onEachProvince = useCallback(
     (feature: ProvinceFeature, layer: L.Layer) => {
       if ("setStyle" in layer) {
         const pathLayer = layer as L.Path;
-        // const defaultStyle = provinceStyle(feature);
 
-        // const originalColor = defaultStyle.fillColor;
         if (feature.properties?.PROVINSI) {
           pathLayer.bindPopup(`<b>${feature.properties.PROVINSI}</b>`);
         }
 
         pathLayer.on({
-          // mouseover: () => {
-          //   pathLayer.setStyle({
-          //     weight: 2,
-          //     color: "#fff",
-          //     dashArray: "",
-          //     fillOpacity: 0.9,
-          //     fillColor: originalColor,
-          //   });
-          //   pathLayer.bringToFront();
-          // },
-          // mouseout: () => {
-          //   pathLayer.setStyle({ ...defaultStyle, fillColor: originalColor });
-          // },
           click: () => {
             if (selectedProvinceRef.current) return;
             zoomToProvince(feature);
@@ -126,7 +113,18 @@ const MapIndonesia = () => {
   useEffect(() => {
     fetch("/data/province.json")
       .then((response) => response.json())
-      .then((data: ProvinceGeoJSON) => setProvinceData(data))
+      .then((data: ProvinceGeoJSON) => {
+        setProvinceData(data);
+
+        // Generate pastel colors
+        const colors: Record<string, string> = {};
+        data.features.forEach((feature) => {
+          const name = feature.properties.PROVINSI;
+          colors[name] = `hsl(${Math.floor(Math.random() * 360)}, 70%, 80%)`;
+        });
+
+        setProvinceColors(colors);
+      })
       .catch((error) =>
         console.error("Error loading province GeoJSON:", error)
       );
@@ -191,10 +189,10 @@ const MapIndonesia = () => {
           <GeoJSON
             data={filteredRegencies}
             style={{
-              color: "#38bdf8", // border color: sky-400
-              weight: 1,
-              fillColor: "#bae6fd", // fill: sky-200
-              fillOpacity: 0.6,
+              color: "#2563eb", // blue-600 stroke
+              weight: 2.5, // bolder border
+              fillColor: "#bfdbfe", // blue-200 fill
+              fillOpacity: 0.4,
             }}
             onEachFeature={(feature, layer) => {
               if (feature.properties?.WADMKK) {
