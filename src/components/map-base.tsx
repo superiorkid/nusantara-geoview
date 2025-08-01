@@ -214,47 +214,6 @@ const MapIndonesia = () => {
                     </tbody>
                   </table>
 
-                  {Array.isArray(selectedRegency.properties?.tempatMenarik) &&
-                    selectedRegency.properties.tempatMenarik.length > 0 && (
-                      <div className="space-y-3 mt-4">
-                        <h3 className="text-lg font-semibold text-gray-700">
-                          Interesting Places
-                        </h3>
-                        <ul className="space-y-4 text-sm">
-                          {selectedRegency.properties.tempatMenarik.map(
-                            (place, idx) => (
-                              <li
-                                key={idx}
-                                className="border p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition duration-200 shadow-sm"
-                              >
-                                <div className="font-semibold text-base">
-                                  {place.nama}
-                                </div>
-                                <div className="text-gray-600 text-sm">
-                                  {place.deskripsi}
-                                </div>
-                                <div className="text-gray-500 italic text-sm">
-                                  {place.alamat}
-                                </div>
-                                <div className="grid grid-cols-3 gap-2 mt-2">
-                                  {place.images?.map(
-                                    (src: string, index: number) => (
-                                      <img
-                                        key={index}
-                                        src={src}
-                                        alt={place.nama}
-                                        className="rounded-md object-cover w-full h-24"
-                                      />
-                                    )
-                                  )}
-                                </div>
-                              </li>
-                            )
-                          )}
-                        </ul>
-                      </div>
-                    )}
-
                   <Button
                     variant="destructive"
                     size="sm"

@@ -49160,29 +49160,7 @@
         "WIADPR": null,
         "WIADKD": null,
         "UUPP": "Hasil Delineasi Batas Desa 2016",
-        "LUAS": 3.1428694,
-        "tempatMenarik": [
-          {
-            "nama": "Pantai Pink",
-            "deskripsi": "Pantai unik dengan pasir berwarna merah muda yang terbentuk dari pecahan koral merah. Pemandangan bawah lautnya juga indah untuk snorkeling.",
-            "alamat": "Desa Sekaroh, Kecamatan Jerowaru, Lombok Timur",
-            "images": [
-              "https://placehold.co/600x400/png",
-              "https://placehold.co/600x400/png",
-              "https://placehold.co/600x400/png"
-            ]
-          },
-          {
-            "nama": "Gunung Rinjani",
-            "deskripsi": "Gunung berapi tertinggi kedua di Indonesia dan menjadi salah satu tujuan pendakian favorit. Terdapat danau kawah yang indah bernama Segara Anak.",
-            "alamat": "Taman Nasional Gunung Rinjani, Lombok",
-            "images": [
-              "https://placehold.co/600x400/png",
-              "https://placehold.co/600x400/png",
-              "https://placehold.co/600x400/png"
-            ]
-          }
-        ]
+        "LUAS": 3.1428694
       }
     },
     {
