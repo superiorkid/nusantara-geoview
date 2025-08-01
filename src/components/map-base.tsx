@@ -163,10 +163,10 @@ const MapIndonesia = () => {
     <div className="relative">
       {(selectedProvince || selectedRegency) && (
         <div className="absolute left-4 top-4 z-[1000] w-80 max-h-[90vh] overflow-auto">
-          <Card className="bg-white text-gray-800 shadow-xl rounded-2xl p-4 space-y-4">
+          <Card className="bg-white text-gray-800 shadow-2xl rounded-2xl p-4 space-y-5 border">
             {selectedProvince && (
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">
+                <h2 className="2xl:text-xl text-base font-bold">
                   {selectedProvince.properties.PROVINSI}
                 </h2>
                 <Button variant="secondary" size="sm" onClick={handleReset}>
@@ -178,34 +178,34 @@ const MapIndonesia = () => {
             {selectedRegency && (
               <>
                 <Separator />
-                <div className="space-y-3">
-                  <h3 className="text-base font-medium">Detail</h3>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-700">
+                    Details
+                  </h3>
 
                   <table className="w-full text-sm">
                     <tbody className="divide-y divide-gray-200">
                       <tr>
-                        <td className="py-2 font-semibold pr-2">Kabupaten:</td>
+                        <td className="py-2 font-semibold pr-2">Regency:</td>
                         <td className="py-2">
                           {selectedRegency.properties?.WADMKK}
                         </td>
                       </tr>
                       <tr>
-                        <td className="py-2 font-semibold pr-2">Provinsi:</td>
+                        <td className="py-2 font-semibold pr-2">Province:</td>
                         <td className="py-2">
                           {selectedRegency.properties?.WADMPR}
                         </td>
                       </tr>
                       <tr>
-                        <td className="py-2 font-semibold pr-2">
-                          Luas Wilayah:
-                        </td>
+                        <td className="py-2 font-semibold pr-2">Area:</td>
                         <td className="py-2">
                           {selectedRegency.properties?.LUAS} km²
                         </td>
                       </tr>
                       <tr>
                         <td className="py-2 font-semibold pr-2">
-                          Kode Wilayah:
+                          Region Code:
                         </td>
                         <td className="py-2">
                           {selectedRegency.properties?.KDEPUM}
@@ -214,38 +214,39 @@ const MapIndonesia = () => {
                     </tbody>
                   </table>
 
-                  {/* Tempat Menarik */}
                   {Array.isArray(selectedRegency.properties?.tempatMenarik) &&
                     selectedRegency.properties.tempatMenarik.length > 0 && (
-                      <div className="space-y-2 mt-4">
-                        <h3 className="text-base font-medium">
-                          Tempat Menarik
+                      <div className="space-y-3 mt-4">
+                        <h3 className="text-lg font-semibold text-gray-700">
+                          Interesting Places
                         </h3>
                         <ul className="space-y-4 text-sm">
                           {selectedRegency.properties.tempatMenarik.map(
-                            (tempat, idx) => (
+                            (place, idx) => (
                               <li
                                 key={idx}
-                                className="border p-3 rounded-md bg-gray-50 space-y-2"
+                                className="border p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition duration-200 shadow-sm"
                               >
-                                <div className="font-semibold">
-                                  {tempat.nama}
+                                <div className="font-semibold text-base">
+                                  {place.nama}
                                 </div>
-                                <div className="text-gray-600">
-                                  {tempat.deskripsi}
+                                <div className="text-gray-600 text-sm">
+                                  {place.deskripsi}
                                 </div>
-                                <div className="text-gray-400 italic">
-                                  {tempat.alamat}
+                                <div className="text-gray-500 italic text-sm">
+                                  {place.alamat}
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 mt-2">
-                                  {tempat.images?.map((src, i) => (
-                                    <img
-                                      key={i}
-                                      src={src}
-                                      alt={tempat.nama}
-                                      className="rounded-md object-cover w-full h-24"
-                                    />
-                                  ))}
+                                  {place.images?.map(
+                                    (src: string, index: number) => (
+                                      <img
+                                        key={index}
+                                        src={src}
+                                        alt={place.nama}
+                                        className="rounded-md object-cover w-full h-24"
+                                      />
+                                    )
+                                  )}
                                 </div>
                               </li>
                             )
