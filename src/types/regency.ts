@@ -37,4 +37,12 @@ export interface RegencyProperties {
   WIADKD?: string;
   UUPP?: string;
   LUAS?: number;
+  tempatMenarik?: TTempatMenarik[];
 }
+
+type TTempatMenarik = {
+  nama: string;
+  deskripsi: string;
+  alamat: string;
+  images: string[];
+};
