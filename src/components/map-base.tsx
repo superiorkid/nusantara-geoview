@@ -404,6 +404,7 @@ const MapIndonesia = () => {
             value={searchKeyword}
             onFocus={() => setIsInputFocused(true)}
             onBlur={handleInputBlur}
+            disabled={!!selectedProvince || !!selectedRegency}
           />
           <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
             <SearchIcon size={16} />
@@ -466,7 +467,7 @@ const MapIndonesia = () => {
           searchKeyword &&
           searchResults.length === 0 &&
           !isSearching && (
-            <div className="absolute right-0 w-[500px] max-w-[calc(100vw-2.5rem)] bg-background mt-1 border rounded-md shadow-lg p-3 text-muted-foreground">
+            <div className="absolute right-0 w-[341px] max-w-[calc(100vw-2.5rem)] bg-background mt-1 border rounded-md shadow-lg p-3 text-muted-foreground">
               No results found
             </div>
           )}
